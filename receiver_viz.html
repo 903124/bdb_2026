@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFL Trajectory Prediction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #3b82f6;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #3b82f6;
+      cursor: pointer;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body class="bg-slate-100">
+  <div id="app"></div>
+
+  <script>
+    // Dataset 1: Original play
+    const PLAY_DATA_1 = {
+      gameId: '2024010601',
+      playId: '3457',
+      receiverData: [
+        [54.53, 34.95], [54.54, 34.94], [54.57, 34.93], [54.63, 34.93], [54.73, 34.94],
+        [54.82, 34.94], [54.94, 34.96], [55.09, 34.98], [55.3, 35], [55.57, 35.03],
+        [55.89, 35.06], [56.27, 35.09], [56.7, 35.12], [57.17, 35.14], [57.66, 35.16],
+        [58.2, 35.15], [58.75, 35.15], [59.32, 35.13], [59.91, 35.11], [60.52, 35.1],
+        [61.14, 35.07], [61.76, 35.05], [62.4, 35.03], [63.04, 34.99], [63.69, 34.95],
+        [64.33, 34.88], [64.97, 34.79], [65.6, 34.65], [66.22, 34.49], [66.83, 34.28],
+        [67.42, 34.02], [67.98, 33.71], [68.51, 33.36], [69.01, 32.97], [69.49, 32.54],
+        [69.94, 32.08], [70.36, 31.6], [70.76, 31.1], [71.13, 30.59], [71.48, 30.08],
+        [71.79, 29.59], [72.08, 29.11], [72.34, 28.64], [72.58, 28.2], [72.78, 27.78],
+        [72.93, 27.39], [73.04, 27.03], [73.11, 26.7], [73.13, 26.4], [73.11, 26.11],
+        [73.06, 25.81], [72.98, 25.52], [72.88, 25.22], [72.77, 24.89], [72.65, 24.54],
+        [72.52, 24.17], [72.38, 23.76], [72.25, 23.32]
+      ],
+      receiverEndpoints: [
+        [54.16856541, 32.75518289], [54.39525721, 33.47583998], [54.25513438, 33.11832984], [54.41933199, 32.61421337], [54.49898022, 33.34028512],
+        [54.57039359, 32.70804672], [54.7369846, 33.03755877], [54.89291646, 32.79797905], [55.11013876, 32.71939502], [55.44764205, 33.16744502],
+        [55.63256036, 32.96552958], [56.16436676, 33.69079975], [56.49005102, 32.97756564], [57.03499099, 32.69439802], [57.36243142, 31.69577869],
+        [57.92755046, 31.42245891], [58.55507412, 30.67444937], [58.98212163, 30.98962647], [59.75452326, 31.13634919], [60.46872364, 30.73619447],
+        [61.06669531, 30.09592796], [61.90510427, 29.53347034], [62.66642464, 29.51708463], [63.36194785, 29.50925105], [63.91635574, 29.20303742],
+        [64.50014081, 28.95108756], [65.6022049, 28.82473026], [65.7292091, 28.21077348], [66.02500041, 27.62952657], [67.41808775, 26.44948344],
+        [68.22186233, 26.82850039], [68.41580934, 26.52748168], [68.88887563, 25.85305482], [69.57985786, 24.87771719], [70.20314877, 24.22940354],
+        [70.19863652, 23.79227215], [70.37916143, 23.14912403], [70.86743115, 23.33032642], [71.34070264, 22.6949036], [71.22228138, 22.02557357],
+        [71.72505111, 21.34306825], [71.69923553, 20.85488185], [72.19680204, 20.42279659], [72.27970921, 20.09551567], [72.45141044, 19.99506227],
+        [73.13642021, 18.66227429], [73.08874037, 19.62390751], [72.80311786, 18.78732337], [72.52391826, 18.76552642], [72.67752682, 18.70595147],
+        [72.29220771, 18.06079822], [71.63379665, 17.77028191], [71.89959956, 17.03535256], [71.96555756, 16.50679578], [71.17612706, 16.24894362],
+        [71.56211151, 15.1733863], [71.53502796, 15.03960642], [70.52489185, 14.06359269]
+      ],
+      passerData: [
+        [51.15, 23.57], [51.13, 23.57], [51.1, 23.57], [51.05, 23.57], [50.99, 23.57],
+        [50.91, 23.57], [50.82, 23.57], [50.7, 23.57], [50.55, 23.57], [50.38, 23.58],
+        [50.19, 23.58], [49.98, 23.59], [49.75, 23.59], [49.51, 23.59], [49.27, 23.58],
+        [49.03, 23.57], [48.79, 23.56], [48.57, 23.54], [48.36, 23.52], [48.17, 23.51],
+        [48.03, 23.51], [47.92, 23.52], [47.86, 23.53], [47.84, 23.56], [47.87, 23.6],
+        [47.92, 23.63], [47.99, 23.67], [48.06, 23.68], [48.11, 23.68], [48.13, 23.67],
+        [48.13, 23.64], [48.09, 23.6], [48, 23.56], [47.86, 23.53], [47.68, 23.53],
+        [47.47, 23.55], [47.21, 23.62], [46.93, 23.72], [46.63, 23.87], [46.32, 24.06],
+        [46.01, 24.27], [45.68, 24.5], [45.35, 24.72], [45.02, 24.95], [44.69, 25.14],
+        [44.35, 25.29], [44.03, 25.41], [43.7, 25.49], [43.39, 25.52], [43.07, 25.52],
+        [42.75, 25.5], [42.44, 25.45], [42.14, 25.4], [41.82, 25.33], [41.53, 25.31],
+        [41.24, 25.29], [40.97, 25.29], [40.71, 25.32]
+      ],
+      uncertaintyData: [
+        [0.449, 2.134], [0.365, 1.789], [0.429, 1.998], [0.335, 1.838], [0.339, 1.756],
+        [0.411, 1.929], [0.390, 2.048], [0.400, 2.017], [0.427, 2.160], [0.358, 2.288],
+        [0.451, 2.045], [0.367, 1.718], [0.431, 2.205], [0.544, 2.335], [0.644, 2.494],
+        [0.801, 2.207], [0.868, 2.568], [0.629, 2.370], [0.880, 2.201], [0.885, 2.173],
+        [0.958, 2.355], [1.336, 3.047], [1.519, 3.130], [1.869, 3.532], [1.845, 2.858],
+        [1.767, 3.038], [1.771, 3.289], [1.733, 2.669], [1.331, 2.714], [2.094, 2.744],
+        [1.679, 2.652], [1.677, 2.319], [1.640, 2.544], [1.537, 1.864], [1.250, 1.906],
+        [1.641, 1.780], [1.304, 1.727], [1.395, 1.771], [1.658, 1.668], [1.438, 1.689],
+        [1.399, 1.712], [1.796, 1.775], [1.724, 2.129], [1.936, 2.438], [1.662, 1.954],
+        [1.826, 2.473], [1.366, 2.090], [1.997, 2.207], [1.448, 2.362], [1.468, 2.034],
+        [1.764, 2.457], [1.745, 2.043], [1.853, 1.981], [1.672, 2.419], [1.437, 2.287],
+        [1.808, 2.645], [1.841, 2.542], [2.180, 2.490]
+      ],
+      predictedFrames: [
+        7.3, 6.88, 6.88, 7.06, 6.88, 7.04, 6.96, 6.86, 7.34, 7.14,
+        7.34, 7.36, 8.02, 8.84, 9.62, 9.88, 10.92, 10.68, 11.04, 11.86,
+        12.68, 13.56, 14.24, 13.94, 14.26, 14.34, 14.66, 13.86, 14, 14.9,
+        14.5, 13.54, 13.62, 13.68, 13.84, 13.64, 13.46, 13.12, 13.62, 13.74,
+        13.44, 14.04, 14.1, 14.2, 13.9, 14.78, 13.8, 13.9, 14.22, 14.28,
+        13.84, 13.74, 14.44, 14.58, 14.4, 15.68, 16, 16.06
+      ]
+    };
+
+    // Dataset 2: New play
+    const PLAY_DATA_2 = {
+      gameId: '2023112609',
+      playId: '1852',
+      receiverData: [
+        [49.9, 11.87], [49.94, 11.85], [49.99, 11.84], [50.1, 11.85], [50.22, 11.85],
+        [50.38, 11.87], [50.59, 11.9], [50.84, 11.96], [51.15, 12.06], [51.49, 12.14],
+        [51.89, 12.24], [52.34, 12.36], [52.83, 12.48], [53.38, 12.61], [53.97, 12.76],
+        [54.61, 12.89], [55.28, 13.03], [55.98, 13.16], [56.7, 13.28], [57.45, 13.39],
+        [58.23, 13.49], [59.01, 13.57], [59.82, 13.64], [60.63, 13.7], [61.44, 13.74],
+        [62.24, 13.79], [63.05, 13.84], [63.84, 13.91], [64.6, 14.01], [65.34, 14.14],
+        [66.05, 14.29], [66.72, 14.49], [67.34, 14.74], [67.89, 15.05], [68.39, 15.41],
+        [68.84, 15.82], [69.24, 16.27], [69.6, 16.77]
+      ],
+      passerData: [
+        [45.37, 30.35], [45.33, 30.37], [45.27, 30.4], [45.19, 30.44], [45.09, 30.48],
+        [44.97, 30.53], [44.82, 30.59], [44.65, 30.65], [44.45, 30.7], [44.22, 30.75],
+        [43.98, 30.78], [43.72, 30.81], [43.44, 30.82], [43.15, 30.81], [42.86, 30.78],
+        [42.57, 30.74], [42.28, 30.68], [42.01, 30.6], [41.75, 30.51], [41.51, 30.42],
+        [41.3, 30.32], [41.12, 30.22], [40.95, 30.12], [40.82, 30.03], [40.7, 29.94],
+        [40.61, 29.85], [40.53, 29.78], [40.47, 29.71], [40.41, 29.64], [40.37, 29.58],
+        [40.33, 29.53], [40.31, 29.5], [40.29, 29.47], [40.3, 29.45], [40.32, 29.44],
+        [40.36, 29.44], [40.41, 29.43], [40.45, 29.42]
+      ],
+      receiverEndpoints: [
+        [51.4032008, 16.37669246], [51.3586574, 16.4341047], [51.35136286, 16.41603264], [51.66015964, 16.38482345], [51.75890003, 16.52613739],
+        [51.91616342, 16.59152145], [52.02206616, 16.96691098], [52.28483391, 16.79863078], [52.81341665, 16.87871452], [53.05062021, 17.06997897],
+        [53.49763201, 17.12891096], [53.83551743, 17.63354195], [54.57498894, 18.28776714], [55.15842799, 18.47759914], [56.26782796, 19.2343408],
+        [57.43984813, 19.77996957], [58.21197908, 20.1863413], [59.51077061, 20.3155282], [60.37215077, 20.99724706], [62.32942115, 20.38117228],
+        [64.84494186, 20.5952137], [65.53622936, 21.02954873], [66.27740083, 21.03719451], [68.52948693, 20.52924096], [69.73524505, 21.35593574],
+        [70.07437852, 21.67755654], [71.34606913, 21.81103641], [72.90237942, 22.3234546], [72.08188976, 22.72703053], [73.3870209, 21.82080547],
+        [71.80093472, 22.65530408], [72.67443236, 22.40976787], [72.11339254, 23.09482295], [71.98330571, 23.78804414], [71.52250836, 23.92778474],
+        [71.73985246, 25.04252069], [72.07657863, 24.95060445], [72.15161222, 25.28938978]
+      ],
+      uncertaintyData: [
+        [0.624930256, 0.804120581], [0.542782068, 0.868338499], [0.467112979, 0.846853298], [0.580134674, 1.025291725], [0.532548002, 1.002514024],
+        [0.489940955, 0.871517425], [0.512541466, 1.080969803], [0.456980009, 0.902098034], [0.435527788, 0.953909394], [0.519386947, 0.917650721],
+        [0.589275889, 1.067070911], [0.603932129, 1.032580709], [0.572133283, 1.309700772], [1.042615821, 1.149698916], [0.999650416, 1.248219312],
+        [1.051270085, 1.415052958], [1.5344734, 1.884647995], [2.00399167, 1.603146629], [2.027614129, 2.234174916], [2.631223235, 2.355434104],
+        [3.361501596, 2.727750707], [3.322940709, 2.427828594], [3.225280672, 3.460122761], [4.268967167, 3.554752082], [4.785253692, 3.60541117],
+        [4.491642188, 3.473073389], [4.289064757, 2.827186031], [4.429396891, 3.602260634], [3.107185861, 3.384168717], [4.176531286, 3.552995177],
+        [3.661174483, 3.089462482], [3.522285975, 2.961837831], [2.663493455, 2.552780166], [2.70978524, 2.323463135], [2.058974517, 1.880612201],
+        [2.055387331, 2.250238078], [1.532602331, 1.588953936], [1.364937027, 1.935570011]
+      ],
+      predictedFrames: [
+        8.92, 9.12, 9.4, 9.02, 9.54, 9, 9.14, 9.1, 8.98, 9.02,
+        8.94, 9.42, 10.12, 10.4, 11.54, 12.4, 13.42, 14.16, 14.88, 16.64,
+        17.26, 18.14, 19.28, 21.8, 21.96, 21.62, 21.28, 22.98, 20.78, 20.84,
+        19.76, 18.6, 17.04, 16.12, 15.92, 15.44, 14.88, 15.06
+      ]
+    };
+
+    // State
+    let currentPlayData = PLAY_DATA_1;
+    let currentFrame = 0;
+    let isPlaying = false;
+    let playSpeed = 500;
+    let playInterval = null;
+
+    function getMaxFrames() {
+      return currentPlayData.receiverData.length - 10;
+    }
+
+    function handlePlayChange(value) {
+      currentPlayData = value === '1' ? PLAY_DATA_1 : PLAY_DATA_2;
+      currentFrame = 0;
+      isPlaying = false;
+      clearInterval(playInterval);
+      render();
+    }
+
+    function render() {
+      const actualFrameIndex = 10 + currentFrame;
+      const effectiveFrames = actualFrameIndex;
+      const predictedFramesAhead = currentPlayData.receiverData.length - actualFrameIndex;
+      const frameIndex = Math.min(actualFrameIndex, currentPlayData.receiverData.length - 1);
+      const receiverPos = currentPlayData.receiverData[frameIndex];
+      const receiverEndpoint = currentPlayData.receiverEndpoints[frameIndex];
+      const passerPos = currentPlayData.passerData[frameIndex];
+      const uncertainty = currentPlayData.uncertaintyData[frameIndex];
+      const numFramesPred = currentPlayData.predictedFrames[frameIndex];
+      const expectedFlightTime = (numFramesPred * 0.1).toFixed(2);
+
+      const allXCoords = [...currentPlayData.receiverData.map(p => p[0]), ...currentPlayData.passerData.map(p => p[0]), ...currentPlayData.receiverEndpoints.map(p => p[0])];
+      const allYCoords = [...currentPlayData.receiverData.map(p => p[1]), ...currentPlayData.passerData.map(p => p[1]), ...currentPlayData.receiverEndpoints.map(p => p[1])];
+      
+      const xMin = Math.min(...allXCoords);
+      const xMax = Math.max(...allXCoords);
+      const yMin = Math.min(...allYCoords);
+      const yMax = Math.max(...allYCoords);
+      
+      const xRange = xMax - xMin;
+      const yRange = yMax - yMin;
+      const xPadding = xRange * 0.1;
+      const yPadding = yRange * 0.1;
+      
+      const xScale = 400 / (xRange + 2 * xPadding);
+      const yScale = 300 / (yRange + 2 * yPadding);
+      
+      const normalizeX = (x) => (x - xMin + xPadding) * xScale;
+      const normalizeY = (y) => 300 - (y - yMin + yPadding) * yScale;
+
+      const passerX = normalizeX(passerPos[0]);
+      const passerY = normalizeY(passerPos[1]);
+      const receiverX = normalizeX(receiverPos[0]);
+      const receiverY = normalizeY(receiverPos[1]);
+      const endpointX = normalizeX(receiverEndpoint[0]);
+      const endpointY = normalizeY(receiverEndpoint[1]);
+
+      let pathStr = `M ${receiverX} ${receiverY} L ${endpointX} ${endpointY}`;
+
+      const maxFrames = getMaxFrames();
+      const sliderBg = `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentFrame / maxFrames) * 100}%, #e2e8f0 ${(currentFrame / maxFrames) * 100}%, #e2e8f0 100%)`;
+
+      document.getElementById('app').innerHTML = `
+        <div class="w-full max-w-6xl mx-auto p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl shadow-2xl">
+          <!-- Header -->
+          <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">
+              NFL Trajectory Prediction: Frame-by-Frame Analysis
+            </h1>
+            <p class="text-slate-600">
+              Slide through input frames to see how early predictions affect model output
+            </p>
+          </div>
+
+          <!-- Play Selector -->
+          <div class="bg-white rounded-lg p-4 mb-6 shadow-lg">
+            <div class="flex items-center justify-center gap-4">
+              <label class="text-sm font-semibold text-slate-700">Select Play:</label>
+              <select onchange="handlePlayChange(this.value)" 
+                class="px-4 py-2 rounded-lg border-2 border-slate-300 focus:border-blue-500 focus:outline-none text-sm font-medium">
+                <option value="1" ${currentPlayData === PLAY_DATA_1 ? 'selected' : ''}>
+                  Game ${PLAY_DATA_1.gameId} - Play ${PLAY_DATA_1.playId}
+                </option>
+                <option value="2" ${currentPlayData === PLAY_DATA_2 ? 'selected' : ''}>
+                  Game ${PLAY_DATA_2.gameId} - Play ${PLAY_DATA_2.playId}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Main Visualization Area -->
+          <div class="bg-white rounded-lg p-6 mb-6 shadow-lg">
+            <div class="grid grid-cols-2 gap-6">
+              <!-- Left: Field Visualization -->
+              <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200">
+                <h3 class="text-lg font-semibold text-green-800 mb-3">Field View</h3>
+                <div class="bg-white rounded border-2 border-green-300 h-80 flex items-center justify-center relative overflow-hidden">
+                  <!-- Field markings -->
+                  <div class="absolute inset-0">
+                    ${[...Array(12)].map((_, i) => `
+                      <div class="absolute border-l border-green-200" style="left: ${(i + 1) * 8.33}%; height: 100%;"></div>
+                    `).join('')}
+                    ${[...Array(5)].map((_, i) => `
+                      <div class="absolute border-t border-green-200" style="top: ${(i + 1) * 16.67}%; width: 100%;"></div>
+                    `).join('')}
+                  </div>
+                  
+                  <!-- Trajectory visualization -->
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <svg width="100%" height="100%" viewBox="0 0 400 300">
+                      <!-- Uncertainty ellipse -->
+                      <ellipse cx="${endpointX}" cy="${endpointY}" rx="${uncertainty[0] * xScale * 1.5}" ry="${uncertainty[1] * yScale * 1.5}" 
+                        fill="#fbbf24" opacity="0.3" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3" />
+                      
+                      <!-- Trajectory path -->
+                      <path d="${pathStr}" fill="none" stroke="#8b5cf6" stroke-width="3" opacity="0.6" />
+                      
+                      <!-- Passer position -->
+                      <circle cx="${passerX}" cy="${passerY}" r="8" fill="#3b82f6" stroke="#1e40af" stroke-width="2" />
+                      
+                      <!-- Current receiver position -->
+                      <circle cx="${receiverX}" cy="${receiverY}" r="5" fill="#8b5cf6" stroke="#6d28d9" stroke-width="2" />
+                      
+                      <!-- Predicted receiver endpoint -->
+                      <circle cx="${endpointX}" cy="${endpointY}" r="7" fill="#ef4444" stroke="#991b1b" stroke-width="2">
+                        <animate attributeName="r" values="7;9;7" dur="1s" repeatCount="indefinite" />
+                      </circle>
+                    </svg>
+                  </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span>Passer Position</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-purple-600"></div>
+                    <span>Current Receiver Position</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span>Predicted Endpoint</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <span>Uncertainty</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Metrics -->
+              <div class="space-y-4">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200">
+                  <h3 class="text-lg font-semibold text-blue-800 mb-3">Game & Play Info</h3>
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="font-medium text-slate-700">Game ID</span>
+                      <span class="font-semibold text-slate-900">${currentPlayData.gameId}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="font-medium text-slate-700">Play ID</span>
+                      <span class="font-semibold text-slate-900">${currentPlayData.playId}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-4 border-2 border-amber-200">
+                  <h3 class="text-lg font-semibold text-amber-800 mb-3">Prediction Quality</h3>
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="font-medium text-slate-700">Predicted Endpoint</span>
+                      <span class="font-semibold text-slate-900">(${receiverEndpoint[0].toFixed(2)}, ${receiverEndpoint[1].toFixed(2)})</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="font-medium text-slate-700">Uncertainty (σ)</span>
+                      <span class="font-semibold text-slate-900">(${uncertainty[0].toFixed(2)}, ${uncertainty[1].toFixed(2)}) yards</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="font-medium text-slate-700">Expected Flight Time</span>
+                      <span class="font-semibold text-slate-900">${expectedFlightTime}s (${numFramesPred.toFixed(1)} frames)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border-2 border-purple-200">
+                  <h3 class="text-lg font-semibold text-purple-800 mb-3">Frame Context</h3>
+                  <div class="text-sm space-y-1 text-purple-700">
+                    <p><strong>Current Frame:</strong> ${actualFrameIndex}</p>
+                    <p><strong>Input Frames:</strong> 0-${actualFrameIndex}</p>
+                    <p><strong>Prediction Frames:</strong> ${actualFrameIndex + 1}-${currentPlayData.receiverData.length - 1}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frame Slider -->
+          <div class="bg-white rounded-lg p-6 mb-6 shadow-lg">
+            <div class="mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <label class="text-sm font-semibold text-slate-700">
+                  Frame: ${actualFrameIndex} / ${currentPlayData.receiverData.length - 1}
+                </label>
+                <span class="text-xs text-slate-500">
+                  (${effectiveFrames} input frames → predict ${predictedFramesAhead} frames ahead)
+                </span>
+              </div>
+              
+              <input type="range" min="0" max="${maxFrames}" value="${currentFrame}" 
+                class="w-full h-3 rounded-lg appearance-none cursor-pointer slider" 
+                style="background: ${sliderBg}" 
+                oninput="handleFrameChange(this.value)" />
+              
+              <div class="flex justify-between text-xs text-slate-400 mt-1 px-1">
+                <span>10</span>
+                <span>${Math.floor(maxFrames * 0.25) + 10}</span>
+                <span>${Math.floor(maxFrames * 0.5) + 10}</span>
+                <span>${Math.floor(maxFrames * 0.75) + 10}</span>
+                <span>${currentPlayData.receiverData.length - 1}</span>
+              </div>
+            </div>
+
+            <!-- Playback Controls -->
+            <div class="flex items-center justify-center gap-4">
+              <button onclick="handleReset()" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors" title="Reset to frame 0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+              </button>
+              
+              <button onclick="handleStepBack()" ${currentFrame === 0 ? 'disabled' : ''} 
+                class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                title="Previous frame">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                  <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+              </button>
+              
+              <button onclick="handlePlayPause()" class="p-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors" 
+                title="${isPlaying ? 'Pause' : 'Play'}">
+                ${isPlaying ? 
+                  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>' :
+                  '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'
+                }
+              </button>
+              
+              <button onclick="handleStepForward()" ${currentFrame === maxFrames ? 'disabled' : ''} 
+                class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                title="Next frame">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                  <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
+              </button>
+              
+              <div class="ml-4 flex items-center gap-2">
+                <label class="text-sm text-slate-600">Speed:</label>
+                <select onchange="handleSpeedChange(this.value)" 
+                class="px-2 py-1 rounded border border-slate-300 text-sm">
+                <option value="1000" ${playSpeed === 1000 ? 'selected' : ''}>Slow (1s)</option>
+                <option value="500" ${playSpeed === 500 ? 'selected' : ''}>Normal (0.5s)</option>
+                <option value="250" ${playSpeed === 250 ? 'selected' : ''}>Fast (0.25s)</option>
+                <option value="100" ${playSpeed === 100 ? 'selected' : ''}>Very Fast (0.1s)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Information Panel -->
+          <div class="bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg p-6 shadow-lg">
+            <h3 class="text-lg font-semibold mb-3">Understanding Frame-Based Augmentation</h3>
+            <div class="grid grid-cols-2 gap-6 text-sm">
+              <div>
+                <h4 class="font-semibold mb-2 text-blue-300">🎯 What This Shows:</h4>
+                <ul class="space-y-1 text-slate-200">
+                  <li>• How predictions change with fewer input frames</li>
+                  <li>• Impact of temporal shift on uncertainty</li>
+                  <li>• Model's ability to predict further ahead</li>
+                  <li>• Trade-off between context and prediction horizon</li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-2 text-purple-300">⚙️ Technical Details:</h4>
+                <ul class="space-y-1 text-slate-200">
+                  <li>• Starts from frame 10 (already in motion)</li>
+                  <li>• Uses frames 0-N as input</li>
+                  <li>• Predicts remaining frames N+1 to end</li>
+                  <li>• Shows how predictions evolve over time</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleFrameChange(value) {
+      currentFrame = parseInt(value);
+      isPlaying = false;
+      clearInterval(playInterval);
+      render();
+    }
+
+    function handlePlayPause() {
+      const maxFrames = getMaxFrames();
+      if (currentFrame >= maxFrames) {
+        currentFrame = 0;
+      }
+      isPlaying = !isPlaying;
+      
+      if (isPlaying) {
+        playInterval = setInterval(() => {
+          if (currentFrame >= maxFrames) {
+            isPlaying = false;
+            clearInterval(playInterval);
+            render();
+            return;
+          }
+          currentFrame++;
+          render();
+        }, playSpeed);
+      } else {
+        clearInterval(playInterval);
+      }
+      render();
+    }
+
+    function handleReset() {
+      currentFrame = 0;
+      isPlaying = false;
+      clearInterval(playInterval);
+      render();
+    }
+
+    function handleStepForward() {
+      const maxFrames = getMaxFrames();
+      if (currentFrame < maxFrames) {
+        currentFrame++;
+      }
+      isPlaying = false;
+      clearInterval(playInterval);
+      render();
+    }
+
+    function handleStepBack() {
+      if (currentFrame > 0) {
+        currentFrame--;
+      }
+      isPlaying = false;
+      clearInterval(playInterval);
+      render();
+    }
+
+    function handleSpeedChange(value) {
+      playSpeed = parseInt(value);
+      if (isPlaying) {
+        clearInterval(playInterval);
+        const maxFrames = getMaxFrames();
+        playInterval = setInterval(() => {
+          if (currentFrame >= maxFrames) {
+            isPlaying = false;
+            clearInterval(playInterval);
+            render();
+            return;
+          }
+          currentFrame++;
+          render();
+        }, playSpeed);
+      }
+      render();
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
